@@ -1,5 +1,6 @@
 package io.github.pauljamescleary.petstore
-package infrastructure.endpoint
+package infrastructure
+package endpoint
 
 import cats.effect._
 import org.http4s._
@@ -11,15 +12,16 @@ import domain.authentication._
 import infrastructure.repository.inmemory.UserRepositoryInMemoryInterpreter
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.server.Router
-import org.scalatest._
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+
 import scala.concurrent.duration._
 import tsec.authentication.{JWTAuthenticator, SecuredRequestHandler}
 import tsec.mac.jca.HMACSHA256
-import util.LoginTest
+import org.scalatest.matchers.should.Matchers
 
 class UserEndpointsSpec
-    extends FunSuite
+    extends AnyFunSuite
     with Matchers
     with ScalaCheckPropertyChecks
     with PetStoreArbitraries
@@ -36,7 +38,8 @@ class UserEndpointsSpec
     val usersEndpoint = UserEndpoints.endpoints(
       userService,
       BCrypt.syncPasswordHasher[IO],
-      SecuredRequestHandler(jwtAuth))
+      SecuredRequestHandler(jwtAuth),
+    )
     Router(("/users", usersEndpoint)).orNotFound
   }
 

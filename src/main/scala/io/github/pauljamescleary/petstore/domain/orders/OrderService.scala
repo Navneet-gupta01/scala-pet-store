@@ -1,21 +1,18 @@
 package io.github.pauljamescleary.petstore.domain
 package orders
 
-import scala.language.higherKinds
-
-import cats.Monad
+import cats.Functor
 import cats.data.EitherT
+import cats.implicits._
 
 class OrderService[F[_]](orderRepo: OrderRepositoryAlgebra[F]) {
-  import cats.implicits._
-
   def placeOrder(order: Order): F[Order] =
     orderRepo.create(order)
 
-  def get(id: Long)(implicit M: Monad[F]): EitherT[F, OrderNotFoundError.type, Order] =
+  def get(id: Long)(implicit F: Functor[F]): EitherT[F, OrderNotFoundError.type, Order] =
     EitherT.fromOptionF(orderRepo.get(id), OrderNotFoundError)
 
-  def delete(id: Long)(implicit M: Monad[F]): F[Unit] =
+  def delete(id: Long)(implicit F: Functor[F]): F[Unit] =
     orderRepo.delete(id).as(())
 }
 

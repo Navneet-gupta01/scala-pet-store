@@ -1,8 +1,8 @@
 package io.github.pauljamescleary.petstore
 package infrastructure.repository.doobie
 
-import cats._
 import cats.data.OptionT
+import cats.effect.Bracket
 import cats.implicits._
 import doobie._
 import doobie.implicits._
@@ -17,7 +17,6 @@ private object UserSQL {
   // H2 does not support JSON data type.
   implicit val roleMeta: Meta[Role] =
     Meta[String].imap(decode[Role](_).leftMap(throw _).merge)(_.asJson.toString)
-
 
   def insert(user: User): Update0 = sql"""
     INSERT INTO USERS (USER_NAME, FIRST_NAME, LAST_NAME, EMAIL, HASH, PHONE, ROLE)
@@ -53,10 +52,9 @@ private object UserSQL {
   """.query
 }
 
-class DoobieUserRepositoryInterpreter[F[_]](val xa: Transactor[F])(implicit M: MonadError[F, Throwable])
-  extends UserRepositoryAlgebra[F]
-  with IdentityStore[F, Long, User] { self =>
-
+class DoobieUserRepositoryInterpreter[F[_]: Bracket[?[_], Throwable]](val xa: Transactor[F])
+    extends UserRepositoryAlgebra[F]
+    with IdentityStore[F, Long, User] { self =>
   import UserSQL._
 
   def create(user: User): F[User] =
@@ -72,9 +70,8 @@ class DoobieUserRepositoryInterpreter[F[_]](val xa: Transactor[F])(implicit M: M
   def findByUserName(userName: String): OptionT[F, User] =
     OptionT(byUserName(userName).option.transact(xa))
 
-  def delete(userId: Long): OptionT[F, User] = get(userId).semiflatMap(user =>
-    UserSQL.delete(userId).run.transact(xa).as(user)
-  )
+  def delete(userId: Long): OptionT[F, User] =
+    get(userId).semiflatMap(user => UserSQL.delete(userId).run.transact(xa).as(user))
 
   def deleteByUserName(userName: String): OptionT[F, User] =
     findByUserName(userName).mapFilter(_.id).flatMap(delete)
@@ -84,7 +81,6 @@ class DoobieUserRepositoryInterpreter[F[_]](val xa: Transactor[F])(implicit M: M
 }
 
 object DoobieUserRepositoryInterpreter {
-  def apply[F[_]](xa: Transactor[F])(implicit M: MonadError[F, Throwable]): DoobieUserRepositoryInterpreter[F]=
+  def apply[F[_]: Bracket[?[_], Throwable]](xa: Transactor[F]): DoobieUserRepositoryInterpreter[F] =
     new DoobieUserRepositoryInterpreter(xa)
 }
-

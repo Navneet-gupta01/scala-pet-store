@@ -1,14 +1,11 @@
 package io.github.pauljamescleary.petstore.domain.pets
 
-import scala.language.higherKinds
-
 import cats.data.NonEmptyList
 
 trait PetRepositoryAlgebra[F[_]] {
-
   def create(pet: Pet): F[Pet]
 
-  def update(pet: Pet) : F[Option[Pet]]
+  def update(pet: Pet): F[Option[Pet]]
 
   def get(id: Long): F[Option[Pet]]
 
